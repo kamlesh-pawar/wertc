@@ -1,4 +1,4 @@
-var connection = new WebSocket('ws://localhost:9090'); 
+var connection = new WebSocket('wss://localhost:9090'); 
 var name = ""; 
  
 var loginInput = document.querySelector('#loginInput'); 
