@@ -3,7 +3,7 @@ var name;
 var connectedUser;
   
 //connecting to our signaling server
-var conn = new WebSocket('wss://192.168.0.111:9090');
+var conn = new WebSocket('wss://kpwebrtc.herokuapp.com/');
   
 conn.onopen = function () { 
    console.log("Connected to the signaling server"); 
