@@ -1,16 +1,19 @@
 'use strict';
 
 var os = require('os');
-var nodeStatic = require('node-static');
-var http = require('http');
+const { createServer } = require("http");
 var socketIO = require('socket.io');
+var express = require('express');
+ 
+const app = express();
+app.use(express.json({ extended: false }));
+app.use(express.static('public'))
+const port = process.env.PORT || 5000;
+const server = createServer(app);
+server.listen(port, () => console.info(`Server running on port: ${port}`));
 
-var fileServer = new(nodeStatic.Server)();
-var app = http.createServer(function(req, res) {
-  fileServer.serve(req, res);
-}).listen(8080);
 
-var io = socketIO.listen(app);
+var io = socketIO.listen(server);
 io.sockets.on('connection', function(socket) {
 
   // convenience function to log server messages on the client
