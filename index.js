@@ -16,7 +16,7 @@ io.sockets.on('connection', function(socket) {
 
   // convenience function to log server messages on the client
   function log() {
-    var array = ['Message from server:'];
+    var array = ['server:'];
     array.push.apply(array, arguments);
     socket.emit('log', array);
   }

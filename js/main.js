@@ -406,7 +406,8 @@ function hide() {
 }
 
 function randomToken() {
-  return Math.floor((1 + Math.random()) * 1e16).toString(16).substring(1);
+  // return Math.floor((1 + Math.random()) * 1e16).toString(16).substring(1);
+  return Math.floor(1000 + Math.random() * 9000);
 }
 
 function logError(err) {
