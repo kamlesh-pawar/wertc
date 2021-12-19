@@ -1,5 +1,8 @@
 const socket = io.connect("/");
-const peerConnection = new RTCPeerConnection();
+   var configuration = { 
+            "iceServers": [{ "url": "stun:stun2.1.google.com:19302" }]
+         }; 
+const peerConnection = new RTCPeerConnection(configuration);
 let isAlreadyCalling = false;
 
 socket.on("update-user-list", ({ users }) => {
