@@ -6,17 +6,16 @@ var http = require('http');
 var socketIO = require('socket.io');
 
 var fileServer = new(nodeStatic.Server)();
-const port = process.env.PORT || 5000;
 var app = http.createServer(function(req, res) {
   fileServer.serve(req, res);
-}).listen(port);
+}).listen(8080);
 
 var io = socketIO.listen(app);
 io.sockets.on('connection', function(socket) {
 
   // convenience function to log server messages on the client
   function log() {
-    var array = ['server:'];
+    var array = ['Message from server:'];
     array.push.apply(array, arguments);
     socket.emit('log', array);
   }
@@ -38,13 +37,13 @@ io.sockets.on('connection', function(socket) {
       socket.join(room);
       log('Client ID ' + socket.id + ' created room ' + room);
       socket.emit('created', room, socket.id);
+
     } else if (numClients === 1) {
       log('Client ID ' + socket.id + ' joined room ' + room);
-      // io.sockets.in(room).emit('join', room);
+      io.sockets.in(room).emit('join', room);
       socket.join(room);
       socket.emit('joined', room, socket.id);
-      io.sockets.in(room).emit('ready', room);
-      socket.broadcast.emit('ready', room);
+      io.sockets.in(room).emit('ready');
     } else { // max two clients
       socket.emit('full', room);
     }
@@ -61,12 +60,8 @@ io.sockets.on('connection', function(socket) {
     }
   });
 
-  socket.on('disconnect', function(reason) {
-    console.log(`Peer or server disconnected. Reason: ${reason}.`);
-    socket.broadcast.emit('bye');
+  socket.on('bye', function(){
+    console.log('received bye');
   });
 
-  socket.on('bye', function(room) {
-    console.log(`Peer said bye on room ${room}.`);
-  });
 });
