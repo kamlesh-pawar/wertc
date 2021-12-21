@@ -10,7 +10,7 @@ var turnReady;
 
 var pcConfig = {
   'iceServers': [{
-   // 'urls': 'stun:stun.l.google.com:19302'
+    'urls': 'stun:stun.l.google.com:19302'
   }]
 };
 
@@ -19,7 +19,7 @@ var sdpConstraints = {
   offerToReceiveAudio: true,
   offerToReceiveVideo: true
 };
-var pcConfig ={ 'iceServers': []}
+ 
 /////////////////////////////////////////////
 
 var room = 'foo';
