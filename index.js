@@ -1,69 +1,153 @@
-'use strict';
+//require our websocket library 
+var WebSocketServer = require('ws').Server; 
 
-var os = require('os');
-var nodeStatic = require('node-static');
-var http = require('http');
-var socketIO = require('socket.io');
+//creating a websocket server at port 9090 
+var wss = new WebSocketServer({port: 9090}); 
 
-var fileServer = new(nodeStatic.Server)();
-const port = process.env.PORT || 5000;
-
-var app = http.createServer(function(req, res) {
-  fileServer.serve(req, res);
-}).listen(port);
-
-var io = socketIO.listen(app);
-io.sockets.on('connection', function(socket) {
-
-  // convenience function to log server messages on the client
-  function log() {
-    var array = ['Message from server:'];
-    array.push.apply(array, arguments);
-    socket.emit('log', array);
-  }
-
-  socket.on('message', function(message) {
-    log('Client said: ', message);
-    // for a real app, would be room-only (not broadcast)
-    socket.broadcast.emit('message', message);
-  });
-
-  socket.on('create or join', function(room) {
-    log('Received request to create or join room ' + room);
-
-    var clientsInRoom = io.sockets.adapter.rooms[room];
-    var numClients = clientsInRoom ? Object.keys(clientsInRoom.sockets).length : 0;
-    log('Room ' + room + ' now has ' + numClients + ' client(s)');
-
-    if (numClients === 0) {
-      socket.join(room);
-      log('Client ID ' + socket.id + ' created room ' + room);
-      socket.emit('created', room, socket.id);
-
-    } else if (numClients === 1) {
-      log('Client ID ' + socket.id + ' joined room ' + room);
-      io.sockets.in(room).emit('join', room);
-      socket.join(room);
-      socket.emit('joined', room, socket.id);
-      io.sockets.in(room).emit('ready');
-    } else { // max two clients
-      socket.emit('full', room);
-    }
-  });
-
-  socket.on('ipaddr', function() {
-    var ifaces = os.networkInterfaces();
-    for (var dev in ifaces) {
-      ifaces[dev].forEach(function(details) {
-        if (details.family === 'IPv4' && details.address !== '127.0.0.1') {
-          socket.emit('ipaddr', details.address);
-        }
-      });
-    }
-  });
-
-  socket.on('bye', function(){
-    console.log('received bye');
-  });
-
+//all connected to the server users 
+var users = {};
+  
+//when a user connects to our sever 
+wss.on('connection', function(connection) {
+  
+   console.log("User connected");
+	
+   //when server gets a message from a connected user 
+   connection.on('message', function(message) { 
+	
+      var data; 
+		
+      //accepting only JSON messages 
+      try { 
+         data = JSON.parse(message); 
+      } catch (e) { 
+         console.log("Invalid JSON"); 
+         data = {}; 
+      }
+		
+      //switching type of the user message 
+      switch (data.type) { 
+         //when a user tries to login
+         case "login": 
+            console.log("User logged", data.name); 
+				
+            //if anyone is logged in with this username then refuse 
+            if(users[data.name]) { 
+               sendTo(connection, { 
+                  type: "login", 
+                  success: false 
+               }); 
+            } else { 
+               //save user connection on the server 
+               users[data.name] = connection; 
+               connection.name = data.name; 
+					
+               sendTo(connection, { 
+                  type: "login", 
+                  success: true 
+               }); 
+            } 
+				
+            break;
+				
+         case "offer": 
+            //for ex. UserA wants to call UserB 
+            console.log("Sending offer to: ", data.name);
+				
+            //if UserB exists then send him offer details 
+            var conn = users[data.name]; 
+				
+            if(conn != null) { 
+               //setting that UserA connected with UserB 
+               connection.otherName = data.name; 
+					
+               sendTo(conn, { 
+                  type: "offer", 
+                  offer: data.offer, 
+                  name: connection.name 
+               }); 
+            }
+				
+            break;
+				
+         case "answer": 
+            console.log("Sending answer to: ", data.name); 
+            //for ex. UserB answers UserA 
+            var conn = users[data.name]; 
+				
+            if(conn != null) { 
+               connection.otherName = data.name; 
+               sendTo(conn, { 
+                  type: "answer", 
+                  answer: data.answer 
+               }); 
+            } 
+				
+            break; 
+				
+         case "candidate": 
+            console.log("Sending candidate to:",data.name); 
+            var conn = users[data.name];
+				
+            if(conn != null) { 
+               sendTo(conn, { 
+                  type: "candidate", 
+                  candidate: data.candidate 
+               }); 
+            } 
+				
+            break;
+				
+         case "leave": 
+            console.log("Disconnecting from", data.name); 
+            var conn = users[data.name]; 
+            conn.otherName = null; 
+				
+            //notify the other user so he can disconnect his peer connection 
+            if(conn != null) {
+               sendTo(conn, { 
+                  type: "leave" 
+              }); 
+            }
+				
+            break;
+				
+         default: 
+            sendTo(connection, { 
+               type: "error", 
+               message: "Command not found: " + data.type 
+            }); 
+				
+            break; 
+      }
+		
+   }); 
+	
+   //when user exits, for example closes a browser window 
+   //this may help if we are still in "offer","answer" or "candidate" state 
+   connection.on("close", function() { 
+	
+      if(connection.name) { 
+         delete users[connection.name]; 
+			
+         if(connection.otherName) { 
+            console.log("Disconnecting from ", connection.otherName); 
+            var conn = users[connection.otherName]; 
+            conn.otherName = null;
+				
+            if(conn != null) { 
+               sendTo(conn, { 
+                  type: "leave" 
+               }); 
+            }
+         } 
+      }
+		
+   });  
+	
+   connection.send("Hello world");  
 });
+  
+function sendTo(connection, message) { 
+   connection.send(JSON.stringify(message)); 
+}
