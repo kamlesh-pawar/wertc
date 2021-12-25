@@ -1,4 +1,4 @@
-const socket = io.connect("/");
+const socket = io.connect("https://wertc.vercel.app");
  
 let isAlreadyCalling = false;
 cfg={'iceServers': []}; con ={'optional': []};
