@@ -3,14 +3,13 @@ var name;
 var connectedUser;
   
 //connecting to our signaling server
-var conn = new WebSocket('ws://wertc.vercel.app:9090');
+// var conn = new WebSocket('ws://wertc.vercel.app:9090');
+const socket = io.connect("/");
   
-conn.onopen = function () { 
-   console.log("Connected to the signaling server"); 
-};
-  
+ 
+ 
 //when we got a message from a signaling server 
-conn.onmessage = function (msg) { 
+socket.on('message' , function (msg) { 
    console.log("Got message", msg.data);
 	
    var data = JSON.parse(msg.data); 
@@ -36,11 +35,11 @@ conn.onmessage = function (msg) {
       default: 
          break; 
    }
-};
+});
   
-conn.onerror = function (err) { 
+socket.on('error' , function (err) { 
    console.log("Got error", err); 
-};
+});
   
 //alias for sending JSON encoded messages 
 function send(message) { 
@@ -48,8 +47,8 @@ function send(message) {
    if (connectedUser) { 
       message.name = connectedUser; 
    } 
-	
-   conn.send(JSON.stringify(message)); 
+	console.log('message',message);
+   socket.emit("message", message); 
 };
   
 //****** 
@@ -79,10 +78,14 @@ loginBtn.addEventListener("click", function (event) {
    name = usernameInput.value;
 	
    if (name.length > 0) { 
-      send({ 
+      socket.emit("message", { 
          type: "login", 
          name: name 
       }); 
+      // send({ 
+      //    type: "login", 
+      //    name: name 
+      // }); 
    }
 	
 });
