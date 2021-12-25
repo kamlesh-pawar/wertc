@@ -10,7 +10,10 @@ app.use(express.static('public'))
 const port = process.env.PORT || 5000;
 const server = createServer(app);
 server.listen(port, () => console.info(`Server running on port: ${port}`));
-var io = socketIO.listen(server);
+var io = socketIO.listen(server,{  cors: {
+   origin: "https://wertc.vercel.app",
+   methods: ["GET", "POST"]
+ }});
  
 
 //all connected to the server users 
